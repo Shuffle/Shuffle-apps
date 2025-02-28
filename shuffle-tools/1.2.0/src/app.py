@@ -514,13 +514,11 @@ class Tools(AppBase):
                     "reason": "Mapping is not valid JSON: %s" % e,
                 }
 
-        for key, value in mapping.items():
-            try:
-                input_data = input_data.replace(key, str(value), -1)
-            except:
-                self.logger.info(f"Failed mapping output data for key {key}")
+        # Ensure input_data is treated as a whole key
+        input_data = str(input_data)  # Convert to string to match dictionary key format
+        result = mapping.get(input_data, default_value) 
 
-        return input_data 
+        return result
 
     # Changed with 1.1.0 to run with different returns 
     def regex_capture_group(self, input_data, regex):
