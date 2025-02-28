@@ -22,7 +22,7 @@ class AWSS3(AppBase):
         """
         super().__init__(redis, logger, console_logger)
 
-    def auth_s3(self, access_key, secret_key, region):
+    def auth_s3(self, access_key, secret_key, region, endpoint_url=None):
         my_config = Config(
             region_name = region,
             signature_version = "s3v4",
@@ -32,17 +32,22 @@ class AWSS3(AppBase):
             },
         )
 
-        self.s3 = boto3.resource(
-            's3', 
-            config=my_config, 
-            aws_access_key_id=access_key,
-            aws_secret_access_key=secret_key,
-        )
+        resource_args = {
+            "service_name": 's3',
+            "config": my_config,
+            "aws_access_key_id": access_key,
+            "aws_secret_access_key": secret_key
+        }
+
+        if endpoint_url and endpoint_url != 'default':
+            resource_args['endpoint_url'] = endpoint_url
+
+        self.s3 = boto3.resource(**resource_args)
 
         return self.s3
 
-    def list_buckets(self, access_key, secret_key, region):
-        self.s3 = self.auth_s3(access_key, secret_key, region)
+    def list_buckets(self, access_key, secret_key, region, endpoint_url):
+        self.s3 = self.auth_s3(access_key, secret_key, region, endpoint_url)
         client = self.s3.meta.client
         try:
             newlist = client.list_buckets()
@@ -50,8 +55,8 @@ class AWSS3(AppBase):
         except botocore.exceptions.ClientError as e:
             return "Error: %s" % e
 
-    def create_bucket(self, access_key, secret_key, region, bucket_name, access_type):
-        self.s3 = self.auth_s3(access_key, secret_key, region)
+    def create_bucket(self, access_key, secret_key, region, bucket_name, access_type, endpoint_url):
+        self.s3 = self.auth_s3(access_key, secret_key, region, endpoint_url)
         client = self.s3.meta.client
         try:
             creation = client.create_bucket(
@@ -66,8 +71,8 @@ class AWSS3(AppBase):
         except botocore.exceptions.ClientError as e:
             return "Error: %s" % e
 
-    def block_ip_access(self, access_key, secret_key, region, bucket_name, ip):
-        self.s3 = self.auth_s3(access_key, secret_key, region)
+    def block_ip_access(self, access_key, secret_key, region, bucket_name, ip, endpoint_url):
+        self.s3 = self.auth_s3(access_key, secret_key, region, endpoint_url)
         client = self.s3.meta.client
 
         ip_policy = {
@@ -123,8 +128,8 @@ class AWSS3(AppBase):
         print(putaction)
         return "Successfully blocked IP %s" % ip
 
-    def bucket_request_payment(self, access_key, secret_key, region, bucket_name):
-        self.s3 = self.auth_s3(access_key, secret_key, region)
+    def bucket_request_payment(self, access_key, secret_key, region, bucket_name, endpoint_url):
+        self.s3 = self.auth_s3(access_key, secret_key, region, endpoint_url)
         client = self.s3.meta.client
 
         try:
@@ -132,8 +137,8 @@ class AWSS3(AppBase):
         except botocore.exceptions.ClientError as e:
             return "Error: %s" % e
 
-    def bucket_replication(self, access_key, secret_key, region, bucket_name):
-        self.s3 = self.auth_s3(access_key, secret_key, region)
+    def bucket_replication(self, access_key, secret_key, region, bucket_name, endpoint_url):
+        self.s3 = self.auth_s3(access_key, secret_key, region, endpoint_url)
         client = self.s3.meta.client
 
         try:
@@ -141,8 +146,8 @@ class AWSS3(AppBase):
         except botocore.exceptions.ClientError as e:
             return "Error: %s" % e
 
-    def bucket_policy_status(self, access_key, secret_key, region, bucket_name):
-        self.s3 = self.auth_s3(access_key, secret_key, region)
+    def bucket_policy_status(self, access_key, secret_key, region, bucket_name, endpoint_url):
+        self.s3 = self.auth_s3(access_key, secret_key, region, endpoint_url)
         client = self.s3.meta.client
 
         try:
@@ -150,8 +155,8 @@ class AWSS3(AppBase):
         except botocore.exceptions.ClientError as e:
             return "Error: %s" % e
 
-    def bucket_logging(self, access_key, secret_key, region, bucket_name):
-        self.s3 = self.auth_s3(access_key, secret_key, region)
+    def bucket_logging(self, access_key, secret_key, region, bucket_name, endpoint_url):
+        self.s3 = self.auth_s3(access_key, secret_key, region, endpoint_url)
         client = self.s3.meta.client
 
         try:
@@ -159,8 +164,8 @@ class AWSS3(AppBase):
         except botocore.exceptions.ClientError as e:
             return "Error: %s" % e
 
-    def upload_file_to_bucket(self, access_key, secret_key, region, bucket_name, bucket_path, file_id):
-        self.s3 = self.auth_s3(access_key, secret_key, region)
+    def upload_file_to_bucket(self, access_key, secret_key, region, bucket_name, bucket_path, file_id, endpoint_url):
+        self.s3 = self.auth_s3(access_key, secret_key, region, endpoint_url)
         client = self.s3.meta.client
 
         found_file = self.get_file(file_id)
@@ -171,15 +176,15 @@ class AWSS3(AppBase):
         #s3_response = client.upload_file('LOCAL PATH', bucket_name, bucket_path)
         return s3_response
 
-    def delete_file_from_bucket(self, access_key, secret_key, region, bucket_name, bucket_path):
-        self.s3 = self.auth_s3(access_key, secret_key, region)
+    def delete_file_from_bucket(self, access_key, secret_key, region, bucket_name, bucket_path, endpoint_url):
+        self.s3 = self.auth_s3(access_key, secret_key, region, endpoint_url)
         client = self.s3.meta.client
 
         s3_response = client.delete_object(Bucket=bucket_name, Key=bucket_path)
         return s3_response
 
-    def download_file_from_bucket(self, access_key, secret_key, region, bucket_name, filename):
-        self.s3 = self.auth_s3(access_key, secret_key, region)
+    def download_file_from_bucket(self, access_key, secret_key, region, bucket_name, filename, endpoint_url):
+        self.s3 = self.auth_s3(access_key, secret_key, region, endpoint_url)
         client = self.s3.meta.client
 
         s3_response_object = client.get_object(Bucket=bucket_name, Key=filename)

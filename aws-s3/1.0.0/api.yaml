@@ -32,6 +32,12 @@ authentication:
       required: true
       schema:
         type: string
+    - name: endpoint_url
+      description: The endpoint to use. 'default' or blank for default endpoint
+      example: "http://localhost:9000"
+      required: false
+      schema:
+        type: string
 actions:
   - name: create_bucket 
     description: Creates a bucket with the specified name
